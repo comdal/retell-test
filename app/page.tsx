@@ -9,12 +9,20 @@ export default function HomePage() {
 
   const [status, setStatus] = useState("페이지가 열렸습니다.");
   const [isCalling, setIsCalling] = useState(false);
+  const [isEmbedded, setIsEmbedded] = useState(false);
+
+  const openInNewTab = () => {
+    const url = window.location.href;
+    const newWindow = window.open(url, "_blank", "noopener,noreferrer");
+
+    if (!newWindow) {
+      setStatus("팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 눌러주세요.");
+    }
+  };
 
   const handleStartCall = async () => {
     try {
-      if (isCalling) {
-        return;
-      }
+      if (isCalling) return;
 
       setStatus("통화 연결 준비중...");
 
@@ -52,6 +60,9 @@ export default function HomePage() {
   };
 
   useEffect(() => {
+    const embedded = window.self !== window.top;
+    setIsEmbedded(embedded);
+
     const client = new RetellWebClient();
     clientRef.current = client;
 
@@ -71,7 +82,8 @@ export default function HomePage() {
       setIsCalling(false);
     });
 
-    if (!hasAutoStartedRef.current) {
+    // 직접 접속일 때만 자동 시작
+    if (!embedded && !hasAutoStartedRef.current) {
       hasAutoStartedRef.current = true;
       handleStartCall();
     }
@@ -79,8 +91,7 @@ export default function HomePage() {
     return () => {
       try {
         client.stopCall();
-      } catch {
-      }
+      } catch {}
     };
   }, []);
 
@@ -99,7 +110,7 @@ export default function HomePage() {
       <div
         style={{
           width: "100%",
-          maxWidth: "480px",
+          maxWidth: "520px",
           backgroundColor: "#ffffff",
           borderRadius: "16px",
           boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
@@ -129,43 +140,76 @@ export default function HomePage() {
           상태: <strong>{status}</strong>
         </p>
 
-        <div style={{ display: "flex", gap: "12px" }}>
-          <button
-            onClick={handleStartCall}
-            disabled={isCalling}
-            style={{
-              flex: 1,
-              padding: "14px 18px",
-              border: "none",
-              borderRadius: "10px",
-              backgroundColor: isCalling ? "#9ca3af" : "#2563eb",
-              color: "#fff",
-              fontSize: "16px",
-              fontWeight: 700,
-              cursor: isCalling ? "not-allowed" : "pointer",
-            }}
-          >
-            통화 시작
-          </button>
+        {isEmbedded ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <button
+              onClick={openInNewTab}
+              style={{
+                width: "100%",
+                padding: "14px 18px",
+                border: "none",
+                borderRadius: "10px",
+                backgroundColor: "#2563eb",
+                color: "#fff",
+                fontSize: "16px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              새 창으로 음성 상담 시작
+            </button>
 
-          <button
-            onClick={handleStopCall}
-            disabled={!isCalling}
-            style={{
-              flex: 1,
-              padding: "14px 18px",
-              border: "none",
-              borderRadius: "10px",
-              backgroundColor: !isCalling ? "#9ca3af" : "#dc2626",
-              color: "#fff",
-              fontSize: "16px",
-              fontWeight: 700,
-              cursor: !isCalling ? "not-allowed" : "pointer",
-            }}
-          >
-            통화 종료
-          </button>
-        </div>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "14px",
+                color: "#666",
+                lineHeight: 1.5,
+              }}
+            >
+              Gather 안에서는 음성 통화가 제대로 동작하지 않을 수 있습니다.
+              위 버튼을 눌러 새 탭에서 실행하세요.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: "12px" }}>
+            <button
+              onClick={handleStartCall}
+              disabled={isCalling}
+              style={{
+                flex: 1,
+                padding: "14px 18px",
+                border: "none",
+                borderRadius: "10px",
+                backgroundColor: isCalling ? "#9ca3af" : "#2563eb",
+                color: "#fff",
+                fontSize: "16px",
+                fontWeight: 700,
+                cursor: isCalling ? "not-allowed" : "pointer",
+              }}
+            >
+              통화 시작
+            </button>
+
+            <button
+              onClick={handleStopCall}
+              disabled={!isCalling}
+              style={{
+                flex: 1,
+                padding: "14px 18px",
+                border: "none",
+                borderRadius: "10px",
+                backgroundColor: !isCalling ? "#9ca3af" : "#dc2626",
+                color: "#fff",
+                fontSize: "16px",
+                fontWeight: 700,
+                cursor: !isCalling ? "not-allowed" : "pointer",
+              }}
+            >
+              통화 종료
+            </button>
+          </div>
+        )}
       </div>
     </main>
   );
