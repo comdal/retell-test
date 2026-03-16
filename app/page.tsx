@@ -5,40 +5,17 @@ import { RetellWebClient } from "retell-client-js-sdk";
 
 export default function HomePage() {
   const clientRef = useRef<RetellWebClient | null>(null);
+  const hasAutoStartedRef = useRef(false);
 
-  const [status, setStatus] = useState("대기중");
+  const [status, setStatus] = useState("페이지가 열렸습니다.");
   const [isCalling, setIsCalling] = useState(false);
-
-  useEffect(() => {
-    const client = new RetellWebClient();
-    clientRef.current = client;
-
-    client.on("call_started", () => {
-      setStatus("통화가 시작되었습니다.");
-      setIsCalling(true);
-    });
-
-    client.on("call_ended", () => {
-      setStatus("통화가 종료되었습니다.");
-      setIsCalling(false);
-    });
-
-    client.on("error", (err: any) => {
-      console.error("Retell client error:", err);
-      setStatus(`오류: ${err?.message || "알 수 없음"}`);
-      setIsCalling(false);
-    });
-
-    return () => {
-      try {
-        client.stopCall();
-      } catch {
-      }
-    };
-  }, []);
 
   const handleStartCall = async () => {
     try {
+      if (isCalling) {
+        return;
+      }
+
       setStatus("통화 연결 준비중...");
 
       const response = await fetch("/api/create-call", {
@@ -66,13 +43,46 @@ export default function HomePage() {
   const handleStopCall = () => {
     try {
       clientRef.current?.stopCall();
-      setStatus("통화 종료 버튼을 눌렀습니다.");
+      setStatus("통화가 종료되었습니다.");
       setIsCalling(false);
     } catch (error: any) {
       console.error("stop call error:", error);
       setStatus("종료 중 오류");
     }
   };
+
+  useEffect(() => {
+    const client = new RetellWebClient();
+    clientRef.current = client;
+
+    client.on("call_started", () => {
+      setStatus("통화가 시작되었습니다.");
+      setIsCalling(true);
+    });
+
+    client.on("call_ended", () => {
+      setStatus("통화가 종료되었습니다.");
+      setIsCalling(false);
+    });
+
+    client.on("error", (err: any) => {
+      console.error("Retell client error:", err);
+      setStatus(`오류: ${err?.message || "알 수 없음"}`);
+      setIsCalling(false);
+    });
+
+    if (!hasAutoStartedRef.current) {
+      hasAutoStartedRef.current = true;
+      handleStartCall();
+    }
+
+    return () => {
+      try {
+        client.stopCall();
+      } catch {
+      }
+    };
+  }, []);
 
   return (
     <main
